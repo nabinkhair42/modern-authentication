@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { Loader2, ArrowLeft } from "lucide-react"
 import Link from "next/link"
-import { getClientSession } from "@/lib/client-auth"
 import {
   Card,
   CardHeader,
@@ -27,23 +26,14 @@ interface UserProfile {
 
 export default function Profile() {
   const [isLoading, setIsLoading] = useState(false)
-  const [isChecking, setIsChecking] = useState(true)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [name, setName] = useState("")
   const router = useRouter()
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const session = await getClientSession()
-      if (!session?.user?.id) {
-        router.push("/signin?callbackUrl=/profile")
-        return
-      }
-      fetchProfile()
-    }
-    checkAuth()
-  }, [router])
+    fetchProfile()
+  }, [])
 
   const fetchProfile = async () => {
     try {
@@ -54,7 +44,6 @@ export default function Profile() {
       const data = await response.json()
       setProfile(data)
       setName(data.name)
-      setIsChecking(false)
     } catch (error) {
       toast.error("Failed to load profile")
       router.push("/")
@@ -86,7 +75,7 @@ export default function Profile() {
     }
   }
 
-  if (isChecking) {
+  if (!profile) {
     return (
       <div className="container mx-auto flex min-h-screen flex-col items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -111,7 +100,7 @@ export default function Profile() {
                 <Input
                   id="email"
                   type="email"
-                  value={profile?.email}
+                  value={profile.email}
                   disabled
                 />
               </div>
@@ -152,16 +141,16 @@ export default function Profile() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Email</Label>
-                <p className="text-sm text-muted-foreground">{profile?.email}</p>
+                <p className="text-sm text-muted-foreground">{profile.email}</p>
               </div>
               <div className="space-y-2">
                 <Label>Name</Label>
-                <p className="text-sm text-muted-foreground">{profile?.name}</p>
+                <p className="text-sm text-muted-foreground">{profile.name}</p>
               </div>
               <div className="space-y-2">
                 <Label>Member Since</Label>
                 <p className="text-sm text-muted-foreground">
-                  {new Date(profile?.createdAt || "").toLocaleDateString()}
+                  {new Date(profile.createdAt).toLocaleDateString()}
                 </p>
               </div>
             </CardContent>

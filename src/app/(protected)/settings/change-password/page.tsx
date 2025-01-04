@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { Loader2, ArrowLeft } from "lucide-react"
 import Link from "next/link"
-import { getClientSession } from "@/lib/client-auth"
 import {
   Card,
   CardHeader,
@@ -23,21 +22,7 @@ export default function ChangePassword() {
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [isChecking, setIsChecking] = useState(true)
   const router = useRouter()
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      const session = await getClientSession()
-      console.log("Change password session:", session)
-      if (!session?.user?.id) {
-        router.push("/signin?callbackUrl=/settings/change-password")
-        return
-      }
-      setIsChecking(false)
-    }
-    checkAuth()
-  }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -82,14 +67,6 @@ export default function ChangePassword() {
     } finally {
       setIsLoading(false)
     }
-  }
-
-  if (isChecking) {
-    return (
-      <div className="container mx-auto flex min-h-screen flex-col items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    )
   }
 
   return (
