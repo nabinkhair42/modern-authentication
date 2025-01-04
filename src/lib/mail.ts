@@ -20,7 +20,7 @@ export async function sendVerificationEmail(email: string, token: string) {
       <div>
         <h1>Verify your email</h1>
         <p>Click the link below to verify your email address:</p>
-        <a href="${verificationUrl}">${verificationUrl}</a>
+        <a href="${verificationUrl}">Verify Now</a>
       </div>
     `,
   })
@@ -37,7 +37,7 @@ export async function sendMagicLinkEmail(email: string, token: string) {
       <div>
         <h1>Sign in to your account</h1>
         <p>Click the link below to sign in to your account:</p>
-        <a href="${loginUrl}">${loginUrl}</a>
+        <a href="${loginUrl}">Login</a>
         <p>This link will expire in 15 minutes.</p>
       </div>
     `,
@@ -55,7 +55,7 @@ export async function sendPasswordResetEmail(email: string, token: string) {
       <div>
         <h1>Reset your password</h1>
         <p>Click the link below to reset your password:</p>
-        <a href="${resetUrl}">${resetUrl}</a>
+        <a href="${resetUrl}">Reset Password</a>
         <p>This link will expire in 1 hour.</p>
       </div>
     `,

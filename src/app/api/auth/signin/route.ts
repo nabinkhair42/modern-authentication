@@ -3,11 +3,26 @@ import { compare } from "bcrypt"
 import { connectToDatabase } from "@/lib/db"
 import { SignInSchema } from "@/lib/schemas"
 import { createToken, setUserCookie } from "@/lib/jwt"
+import { z } from "zod"
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const validatedData = SignInSchema.parse(body)
+    let validatedData;
+    
+    try {
+      validatedData = SignInSchema.parse(body)
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return NextResponse.json(
+          { 
+            error: error.errors[0].message 
+          },
+          { status: 400 }
+        )
+      }
+      throw error
+    }
 
     const { email, password } = validatedData
 
@@ -55,28 +70,21 @@ export async function POST(request: NextRequest) {
     )
 
     // Set cookie
-    setUserCookie(token)
+    await setUserCookie(token)
 
-    return NextResponse.json({
-      message: "Signed in successfully",
-      user: {
-        id: user._id.toString(),
-        email: user.email,
-        name: user.name
-      }
-    })
-  } catch (error: unknown) {
+    return NextResponse.json(
+      { 
+        message: "Signed in successfully", 
+        user: {
+          id: user._id.toString(),
+          email: user.email,
+          name: user.name
+        }
+      },
+      { status: 200 }
+    )
+  } catch (error) {
     console.error("[SIGNIN]", error)
-    
-    if (error instanceof Error) {
-      if (error.name === "ZodError") {
-        return NextResponse.json(
-          { error: "Validation failed", issues: (error as any).issues },
-          { status: 400 }
-        )
-      }
-    }
-
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

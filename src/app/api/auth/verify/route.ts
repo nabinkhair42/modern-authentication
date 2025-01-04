@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { connectToDatabase } from "@/lib/db"
-import { verifyToken } from "@/lib/jwt"
+import { verifyToken, encrypt } from "@/lib/jwt"
+import { cookies } from "next/headers"
 
 export async function GET(request: NextRequest) {
   try {
@@ -40,9 +41,34 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/signin?success=Email verified successfully`
-    )
+    // Get the user
+    const user = await db.collection("users").findOne({ email: payload.email })
+    if (!user) {
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_APP_URL}/signin?error=User not found`
+      )
+    }
+
+    // Create session token
+    const session = {
+      userId: user._id.toString(),
+      email: user.email,
+      type: "session"
+    }
+
+    const sessionToken = await encrypt(session)
+
+    // Set the session cookie
+    cookies().set(process.env.COOKIE_NAME!, sessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 7 * 24 * 60 * 60 // 7 days
+    })
+
+    // Redirect to home page
+    return NextResponse.redirect(process.env.NEXT_PUBLIC_APP_URL!)
   } catch (error) {
     console.error("[VERIFY]", error)
     return NextResponse.redirect(

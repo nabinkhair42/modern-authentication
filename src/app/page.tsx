@@ -17,7 +17,6 @@ export default function Home() {
   useEffect(() => {
     const checkAuth = async () => {
       const session = await getClientSession();
-      console.log("Session data:", session);
       if (session?.user) {
         setIsAuthenticated(true);
         setUserEmail(session.user.email);
@@ -34,15 +33,12 @@ export default function Home() {
     try {
       const response = await fetch("/api/auth/signout", {
         method: "POST",
+        credentials: "include"
       });
 
       if (!response.ok) {
         throw new Error("Failed to sign out");
       }
-
-      // Clear the cookie
-      document.cookie = "user-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-      
       toast.success("Signed out successfully");
       setIsAuthenticated(false);
       setUserEmail(null);
@@ -74,9 +70,7 @@ export default function Home() {
                 onClick={handleSignOut}
                 disabled={isLoading}
               >
-                {isLoading && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Sign Out
               </Button>
             </>

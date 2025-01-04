@@ -1,10 +1,10 @@
-import { SignJWT, jwtVerify } from 'jose'
-import { cookies } from 'next/headers'
+import { SignJWT, jwtVerify } from "jose";
+import { cookies } from "next/headers";
 
-const secretKey = process.env.JWT_SECRET_KEY!
-const key = new TextEncoder().encode(secretKey)
+const secretKey = process.env.JWT_SECRET_KEY!;
+const key = new TextEncoder().encode(secretKey);
 
-type TokenType = 'session' | 'verification' | 'reset' | 'magic'
+type TokenType = "session" | "verification" | "reset" | "magic";
 
 export async function createToken(
   payload: any,
@@ -12,71 +12,75 @@ export async function createToken(
   expiresIn: string
 ) {
   return await new SignJWT({ ...payload, type })
-    .setProtectedHeader({ alg: 'HS256' })
+    .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(expiresIn)
-    .sign(key)
+    .sign(key);
 }
 
-export async function verifyToken(token: string, type: TokenType): Promise<any> {
+export async function verifyToken(
+  token: string,
+  type: TokenType
+): Promise<any> {
   try {
-    const { payload } = await jwtVerify(token, key)
+    const { payload } = await jwtVerify(token, key);
     if (payload.type !== type) {
-      throw new Error('Invalid token type')
+      throw new Error("Invalid token type");
     }
-    return payload
+    return payload;
   } catch (error) {
-    console.error('Token verification failed:', error)
-    return null
+    console.error("Token verification failed:", error);
+    return null;
   }
 }
 
 // Session management
 export async function getSession() {
-  const token = cookies().get('user-token')?.value
-  if (!token) return null
+  const userToken = process.env.COOKIE_NAME!;
+  const token = cookies().get(userToken)?.value;
+  if (!token) return null;
 
   try {
-    return await verifyToken(token, 'session')
+    return await verifyToken(token, "session");
   } catch {
-    return null
+    return null;
   }
 }
 
 // Legacy functions for backward compatibility
 export async function encrypt(payload: any) {
-  return createToken(payload, 'session', '24h')
+  return createToken(payload, "session", "24h");
 }
 
 export async function decrypt(token: string): Promise<any> {
-  return verifyToken(token, 'session')
+  return verifyToken(token, "session");
 }
 
 // Cookie management
 export function getJwtSecretKey() {
-  const secret = process.env.JWT_SECRET_KEY
+  const secret = process.env.JWT_SECRET_KEY;
   if (!secret) {
-    throw new Error('JWT_SECRET_KEY is not set')
+    throw new Error("JWT_SECRET_KEY is not set");
   }
-  return secret
+  return secret;
 }
 
 export function setUserCookie(token: string) {
   cookies().set({
-    name: 'user-token',
+    name: process.env.COOKIE_NAME!,
     value: token,
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
     maxAge: 7 * 24 * 60 * 60, // 7 days
-  })
+  });
 }
 
 export function getUserCookie() {
-  return cookies().get('user-token')?.value
+  return cookies().get(process.env.COOKIE_NAME!)?.value;
 }
 
 export function removeUserCookie() {
-  cookies().delete('user-token')
+  cookies().delete(process.env.COOKIE_NAME!);
 }

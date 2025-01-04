@@ -85,6 +85,7 @@ export default function SignIn() {
       }
 
       toast.success("Magic link sent! Please check your email.")
+      router.push("/verify")
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to send magic link")
     } finally {
