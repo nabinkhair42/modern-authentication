@@ -79,13 +79,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       message: "Password changed successfully",
     })
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("[CHANGE_PASSWORD]", error)
     
     // Handle Zod validation errors
-    if (error.name === "ZodError") {
+    if (error && typeof error === 'object' && 'name' in error && error.name === "ZodError") {
       return NextResponse.json(
-        { error: "Validation failed", issues: error.issues },
+        { error: "Validation failed", issues: (error as unknown as { issues: any[] }).issues },
         { status: 400 }
       )
     }

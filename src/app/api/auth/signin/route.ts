@@ -65,14 +65,16 @@ export async function POST(request: NextRequest) {
         name: user.name
       }
     })
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("[SIGNIN]", error)
     
-    if (error.name === "ZodError") {
-      return NextResponse.json(
-        { error: "Validation failed", issues: error.issues },
-        { status: 400 }
-      )
+    if (error instanceof Error) {
+      if (error.name === "ZodError") {
+        return NextResponse.json(
+          { error: "Validation failed", issues: (error as any).issues },
+          { status: 400 }
+        )
+      }
     }
 
     return NextResponse.json(

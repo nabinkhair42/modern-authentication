@@ -64,27 +64,35 @@ export async function POST(request: NextRequest) {
       { message: "User created successfully" },
       { status: 201 }
     )
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("[REGISTER]", error)
     
     // Handle Zod validation errors
-    if (error.name === "ZodError") {
-      return NextResponse.json(
-        { error: "Validation failed", issues: error.issues },
-        { status: 400 }
-      )
-    }
+    if (error && typeof error === 'object' && 'name' in error) {
+      if (error.name === "ZodError" && 'issues' in error) {
+        return NextResponse.json(
+          { error: "Validation failed", issues: error.issues },
+          { status: 400 }
+        )
+      }
 
-    // Handle database errors
-    if (error.name === "MongoError" || error.name === "MongoServerError") {
-      return NextResponse.json(
-        { error: "Database error occurred" },
-        { status: 500 }
-      )
+      // Handle database errors
+      if (error.name === "MongoError" || error.name === "MongoServerError") {
+        return NextResponse.json(
+          { error: "Database error occurred" },
+          { status: 500 }
+        )
+      }
     }
 
     // Handle email sending errors
-    if (error.name === "Error" && error.message.includes("email")) {
+    if (
+      error && 
+      typeof error === 'object' && 
+      'message' in error && 
+      typeof (error as { message: string }).message === 'string' && 
+      (error as { message: string }).message.includes("email")
+    ) {
       return NextResponse.json(
         { error: "Failed to send verification email" },
         { status: 500 }

@@ -7,6 +7,7 @@ import { z } from "zod"
 const UpdateDetailsSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").optional(),
   email: z.string().email("Invalid email address").optional(),
+  verified: z.boolean().optional(),
 })
 
 export async function GET() {
