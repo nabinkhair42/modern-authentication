@@ -16,13 +16,9 @@ import {
   CardContent,
   CardFooter,
 } from "@/components/ui/card"
+import { UserProfile } from "@/types/auth.types"
 
-interface UserProfile {
-  id: string
-  email: string
-  name: string
-  createdAt: string
-}
+
 
 export default function Profile() {
   const [isLoading, setIsLoading] = useState(false)

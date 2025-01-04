@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 import { MongoClient, ObjectId } from "mongodb";
 import bcrypt from "bcrypt";
+import { VerificationRequestParams } from "@/types/auth.types";
 
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_SERVER_HOST,
@@ -11,21 +12,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-interface VerificationRequestParams {
-  identifier: string;
-  url: string;
-  expires: Date;
-  provider: {
-    from: string;
-  };
-  token: string;
-  theme: {
-    colorScheme?: string;
-    brandColor?: string;
-    logo?: string;
-  };
-  request: Request;
-}
+
 
 export async function sendVerificationRequest(params: VerificationRequestParams) {
   const { identifier, url, provider } = params;

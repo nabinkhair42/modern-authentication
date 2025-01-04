@@ -1,14 +1,4 @@
-import { jwtDecode } from "jwt-decode"
-
-interface Session {
-  user: {
-    id: string
-    email: string
-  }
-  type: string
-  iat: number
-  exp: number
-}
+import { Session } from "@/types/api.types"
 
 export async function getClientSession(): Promise<Session | null> {
   try {
