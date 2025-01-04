@@ -41,18 +41,32 @@ export default function SignIn() {
         redirect: false,
       });
 
-      if (result?.error) {
+      if (!result) {
+        throw new Error("Authentication failed. Please try again.");
+      }
+
+      if (result.error) {
         throw new Error(result.error);
       }
 
       toast.success("Signed in successfully!");
       router.push("/");
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Invalid email or password"
-      );
+      let errorMessage = "Authentication failed";
+      
+      if (error instanceof Error) {
+        // Extract error message from the error
+        errorMessage = error.message;
+        
+        // Clean up the error message if it's from next-auth
+        if (errorMessage.includes("CredentialsSignin")) {
+          errorMessage = errorMessage.split('"message":"')[1]?.split('"')[0] || errorMessage;
+        }
+      }
+      
+      toast.error(errorMessage, {
+        description: "Please check your credentials and try again"
+      });
     } finally {
       setIsLoading(false);
     }

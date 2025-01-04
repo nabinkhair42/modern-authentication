@@ -59,7 +59,6 @@ export async function POST(req: Request): Promise<NextResponse> {
       { status: 201 }
     )
   } catch (error) {
-    console.error("[REGISTER_ERROR]", error)
     
     if (error instanceof ZodError) {
       return NextResponse.json(

@@ -1,26 +1,27 @@
-import { NextResponse } from "next/server"
-import client from "@/lib/db"
+import { NextResponse } from "next/server";
+import client from "@/lib/db";
 
 export async function POST(req: Request) {
   try {
-    const { email } = await req.json()
+    const { email } = await req.json();
 
     if (!email) {
-      return NextResponse.json(
-        { error: "Email is required" },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
-    const db = (await client).db("auth-db")
-    const user = await db.collection("users").findOne({ email })
+    const db = (await client).db("auth-db");
+    const user = await db.collection("users").findOne({ email });
 
-    return NextResponse.json({ exists: !!user })
+    return NextResponse.json({ exists: !!user });
   } catch (error) {
-    console.error("[CHECK_EMAIL_ERROR]", error)
     return NextResponse.json(
-      { error: "Something went wrong" },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "An error occurred. Please try again.",
+      },
       { status: 500 }
-    )
+    );
   }
 }
