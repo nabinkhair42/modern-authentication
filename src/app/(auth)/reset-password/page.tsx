@@ -1,14 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { KeyRound, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { ForgotPasswordSchema } from "@/lib/schemas";
+import { ResetPasswordSchema } from "@/lib/schemas";
+import { ZodError } from "zod";
 import {
   Card,
   CardHeader,
@@ -18,40 +19,57 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 
-export default function ForgotPassword() {
-  const [email, setEmail] = useState("");
+export default function ResetPassword() {
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token");
+
+  // If no token is provided, redirect to forgot password
+  if (!token) {
+    router.push("/forgot-password");
+    return null;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      // Validate email
-      const validatedData = ForgotPasswordSchema.parse({ email });
+      // Validate passwords
+      const validatedData = ResetPasswordSchema.parse({
+        password,
+        confirmPassword,
+      });
 
-      // Request password reset
+      // Reset password
       const response = await fetch("/api/auth/reset-password", {
-        method: "PUT",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: validatedData.email }),
+        body: JSON.stringify({
+          token,
+          password: validatedData.password,
+        }),
       });
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error);
+        throw new Error(result.error || "Failed to reset password");
       }
 
-      toast.success(result.message);
+      toast.success(result.message || "Password reset successfully!");
       router.push("/signin");
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Failed to process your request. Please try again."
-      );
+      if (error instanceof ZodError) {
+        toast.error(error.errors[0].message);
+      } else if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to reset password. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -66,22 +84,32 @@ export default function ForgotPassword() {
               <KeyRound className="h-8 w-8 text-primary" />
             </div>
             <CardTitle className="text-2xl text-center">
-              Reset Your Password
+              Reset Password
             </CardTitle>
             <CardDescription className="text-center">
-              Enter your email address to receive a password reset link
+              Enter your new password below
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="password">New Password</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="name@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                   disabled={isLoading}
                   required
                 />
@@ -94,10 +122,10 @@ export default function ForgotPassword() {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending reset link...
+                    Resetting password...
                   </>
                 ) : (
-                  "Send Reset Link"
+                  "Reset Password"
                 )}
               </Button>
             </form>

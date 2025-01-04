@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { UserPlus, Github, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { SignUpSchema } from "@/lib/schemas";
 import {
   Card,
   CardHeader,
@@ -20,6 +21,8 @@ import {
 
 export default function SignUp() {
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isGithubLoading, setIsGithubLoading] = useState(false);
   const router = useRouter();
@@ -27,18 +30,37 @@ export default function SignUp() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+
     try {
-      const result = await signIn("email", { 
-        email, 
-        redirect: false,
-        callbackUrl: "/" 
+      // Validate input
+      const data = SignUpSchema.parse({ email, password, confirmPassword });
+
+      // Register user
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
       });
-      if (result?.error) {
-        toast.error(result.error);
-      } else {
-        toast.success("Verification email sent! Please check your inbox.");
-        router.push("/verify");
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to register");
       }
+
+      // Sign in after successful registration
+      const signInResult = await signIn("credentials", {
+        email: data.email,
+        password: data.password,
+        redirect: false,
+      });
+
+      if (signInResult?.error) {
+        throw new Error(signInResult.error);
+      }
+
+      toast.success("Account created successfully!");
+      router.push("/");
     } catch (error) {
       toast.error(
         error instanceof Error
@@ -80,7 +102,7 @@ export default function SignUp() {
               Create an account
             </CardTitle>
             <CardDescription className="text-center">
-              Sign up for an account using email or GitHub
+              Enter your email and password to create your account
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -97,6 +119,28 @@ export default function SignUp() {
                   required
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading || isGithubLoading}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  disabled={isLoading || isGithubLoading}
+                  required
+                />
+              </div>
               <Button 
                 type="submit" 
                 className="w-full"
@@ -105,10 +149,10 @@ export default function SignUp() {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending verification...
+                    Creating account...
                   </>
                 ) : (
-                  "Sign up with Email"
+                  "Create Account"
                 )}
               </Button>
             </form>

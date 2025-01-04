@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { LogIn, Github, Loader2 } from "lucide-react";
+import { LogIn, Github, Loader2, Mail } from "lucide-react";
 import Link from "next/link";
+import { SignInSchema } from "@/lib/schemas";
 import {
   Card,
   CardHeader,
@@ -20,33 +21,85 @@ import {
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isMagicLinkLoading, setIsMagicLinkLoading] = useState(false);
   const [isGithubLoading, setIsGithubLoading] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+
     try {
+      // Validate input
+      const data = SignInSchema.parse({ email, password });
+
+      const result = await signIn("credentials", {
+        email: data.email,
+        password: data.password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        throw new Error(result.error);
+      }
+
+      toast.success("Signed in successfully!");
+      router.push("/");
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Invalid email or password"
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleMagicLink = async () => {
+    if (!email.trim()) {
+      toast.error("Please enter your email address first");
+      return;
+    }
+
+    setIsMagicLinkLoading(true);
+    try {
+      // Check if email exists
+      const checkResponse = await fetch("/api/auth/check-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const { exists, error } = await checkResponse.json();
+      
+      if (error) throw new Error(error);
+      
+      if (!exists) {
+        toast.error("No account found with this email. Please sign up first.");
+        return;
+      }
+
       const result = await signIn("email", { 
         email, 
         redirect: false,
         callbackUrl: "/" 
       });
       if (result?.error) {
-        toast.error(result.error);
-      } else {
-        toast.success("Verification email sent. Please check your inbox.");
-        router.push("/verify");
+        throw new Error(result.error);
       }
+      toast.success("Magic link sent! Please check your inbox.");
+      router.push("/verify");
     } catch (error) {
       toast.error(
         error instanceof Error
           ? error.message
-          : "An error occurred. Please try again."
+          : "Failed to send magic link"
       );
     } finally {
-      setIsLoading(false);
+      setIsMagicLinkLoading(false);
     }
   };
 
@@ -57,7 +110,7 @@ export default function SignIn() {
         callbackUrl: "/",
         redirect: false 
       });
-      toast.success("Signing in with GitHub...");
+      toast.success("Connecting to GitHub...");
     } catch (error) {
       toast.error(
         error instanceof Error
@@ -80,10 +133,10 @@ export default function SignIn() {
               Welcome back
             </CardTitle>
             <CardDescription className="text-center">
-              Sign in to your account using email or GitHub
+              Sign in to your account using your preferred method
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -93,26 +146,38 @@ export default function SignIn() {
                   placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  disabled={isLoading || isGithubLoading}
+                  disabled={isLoading || isMagicLinkLoading || isGithubLoading}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading || isMagicLinkLoading || isGithubLoading}
                   required
                 />
               </div>
               <Button 
                 type="submit" 
                 className="w-full"
-                disabled={isLoading || isGithubLoading}
+                disabled={isLoading || isMagicLinkLoading || isGithubLoading}
               >
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending link...
+                    Signing in...
                   </>
                 ) : (
-                  "Sign in with Email"
+                  "Sign in with Password"
                 )}
               </Button>
             </form>
-            <div className="relative my-4">
+
+            <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t"></div>
               </div>
@@ -122,24 +187,45 @@ export default function SignIn() {
                 </span>
               </div>
             </div>
-            <Button
-              variant="outline"
-              onClick={handleGithubSignIn}
-              disabled={isLoading || isGithubLoading}
-              className="w-full"
-            >
-              {isGithubLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Connecting...
-                </>
-              ) : (
-                <>
-                  <Github className="mr-2 h-4 w-4" />
-                  GitHub
-                </>
-              )}
-            </Button>
+
+            <div className="grid gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleMagicLink}
+                disabled={isLoading || isMagicLinkLoading || isGithubLoading}
+              >
+                {isMagicLinkLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending link...
+                  </>
+                ) : (
+                  <>
+                    <Mail className="mr-2 h-4 w-4" />
+                    Sign in with Magic Link
+                  </>
+                )}
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={handleGithubSignIn}
+                disabled={isLoading || isMagicLinkLoading || isGithubLoading}
+              >
+                {isGithubLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Connecting...
+                  </>
+                ) : (
+                  <>
+                    <Github className="mr-2 h-4 w-4" />
+                    GitHub
+                  </>
+                )}
+              </Button>
+            </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
             <div className="text-sm text-muted-foreground text-center">
