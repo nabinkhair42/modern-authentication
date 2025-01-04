@@ -1,128 +1,64 @@
-import { NextResponse } from "next/server";
-import client from "@/lib/db";
-import { hashPassword } from "@/lib/password";
-import { ResetPasswordSchema } from "@/lib/schemas";
-import crypto from "crypto";
+import { NextRequest, NextResponse } from "next/server"
+import { hash } from "bcrypt"
+import { connectToDatabase } from "@/lib/db"
+import { ResetPasswordSchema } from "@/lib/schemas"
+import { verifyToken } from "@/lib/jwt"
 
-export async function POST(req: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const { token, password } = await req.json();
-    const validatedData = ResetPasswordSchema.parse({
-      password,
-      confirmPassword: password,
-    });
+    const searchParams = request.nextUrl.searchParams
+    const token = searchParams.get("token")
 
-    const db = (await client).db("auth-db");
-
-    // Find user with valid reset token
-    const user = await db.collection("users").findOne({
-      resetToken: token,
-      resetTokenExpiry: { $gt: new Date() },
-    });
-
-    if (!user) {
+    if (!token) {
       return NextResponse.json(
-        {
-          error:
-            "Invalid or expired reset token. Please request a new reset link.",
-        },
+        { error: "Token is required" },
         { status: 400 }
-      );
+      )
     }
 
-    const hashedPassword = await hashPassword(validatedData.password);
+    const body = await request.json()
+    const validatedData = ResetPasswordSchema.parse(body)
+    const { password } = validatedData
 
-    // Update password and remove reset token
-    await db.collection("users").updateOne(
-      { _id: user._id },
-      {
-        $set: { password: hashedPassword },
-        $unset: { resetToken: "", resetTokenExpiry: "" },
-      }
-    );
-
-    return NextResponse.json({
-      message:
-        "Your password has been successfully reset. You can now sign in with your new password.",
-    });
-  } catch (error: unknown) {
-    if (
-      error &&
-      typeof error === "object" &&
-      "name" in error &&
-      error.name === "ZodError" &&
-      "errors" in error
-    ) {
-      const zodError = error as { errors: Array<{ message: string }> };
+    // Verify token
+    const payload = await verifyToken(token, "reset")
+    if (!payload?.email || !payload?.userId) {
       return NextResponse.json(
-        { error: zodError.errors[0].message },
+        { error: "Invalid or expired token" },
         { status: 400 }
-      );
+      )
     }
-    return NextResponse.json(
-      {
-        error:
-          "Failed to reset password. Please try again or request a new reset link.",
-      },
-      { status: 500 }
-    );
-  }
-}
 
-export async function PUT(req: Request) {
-  try {
-    const { email } = await req.json();
+    // Hash new password
+    const hashedPassword = await hash(password, 12)
 
-    const db = (await client).db("auth-db");
+    // Connect to database
+    const client = await connectToDatabase()
+    const db = client.db()
 
-    // Find user with password (exclude magic link only users)
-    const user = await db.collection("users").findOne({
-      email,
-      password: { $exists: true },
-    });
+    // Update user's password
+    const result = await db
+      .collection("users")
+      .updateOne(
+        { email: payload.email },
+        { $set: { password: hashedPassword, updatedAt: new Date() } }
+      )
 
-    if (!user) {
+    if (!result.matchedCount) {
       return NextResponse.json(
-        {
-          error:
-            "No account found with this email address. Please check your email or sign up for a new account.",
-        },
+        { error: "User not found" },
         { status: 404 }
-      );
+      )
     }
 
-    // Generate reset token
-    const resetToken = crypto.randomBytes(32).toString("hex");
-    const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour
-
-    // Save reset token
-    await db.collection("users").updateOne(
-      { _id: user._id },
-      {
-        $set: {
-          resetToken,
-          resetTokenExpiry,
-        },
-      }
-    );
-
-    // Here you would typically send an email with the reset link
-    // For now, we'll just return the token (in production, send via email)
     return NextResponse.json({
-      message:
-        "Password reset link has been sent to your email address. Please check your inbox.",
-      // Remove this in production, send via email instead
-      debug: { resetToken },
-    });
-  } catch (error: unknown) {
+      message: "Password reset successfully",
+    })
+  } catch (error) {
+    console.error("[RESET_PASSWORD]", error)
     return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "An error occurred. Please try again.",
-      },
+      { error: "Internal server error" },
       { status: 500 }
-    );
+    )
   }
 }

@@ -1,62 +1,60 @@
-"use client";
+"use client"
 
-import Link from "next/link";
-import { signOut, useSession } from "next-auth/react";
-import { Button } from "@/components/ui/button";
-import { useState } from "react";
-import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { useState } from "react"
+import { Loader2 } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 export default function Home() {
-  const [isSigningOut, setIsSigningOut] = useState(false);
-  const router = useRouter();
-  const { data: session } = useSession();
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleSignOut = async () => {
-    setIsSigningOut(true);
+    setIsLoading(true)
     try {
-      await signOut({ redirect: false });
-      router.push("/signin");
-      toast.success("Signed out successfully");
+      const response = await fetch("/api/auth/signout", {
+        method: "POST"
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to sign out")
+      }
+
+      toast.success("Signed out successfully")
+      router.push("/signin")
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "An error occurred. Please try again."
-      );
+      toast.error("Failed to sign out")
     } finally {
-      setIsSigningOut(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen py-2">
-      <h1 className="text-4xl font-bold mb-4">Welcome to Our Platform</h1>
-      {session ? (
-        <div className="flex flex-col items-center space-y-4">
-          <p>Welcome, {session.user?.name || session.user?.email}</p>
-          <Button onClick={handleSignOut} disabled={isSigningOut}>
-            {isSigningOut ? (
+    <main className="container mx-auto flex min-h-screen flex-col items-center justify-center gap-12 px-4 py-8 md:max-w-6xl py-6 ">
+      <div className="flex flex-col space-y-6 items-center justify-between">
+        <h1 className="text-3xl font-bold">Welcome to Auth System</h1>
+        <div className="flex items-center gap-4">
+          <Link href="/profile">
+            <Button variant="outline">Profile</Button>
+          </Link>
+          <Button 
+            variant="destructive" 
+            onClick={handleSignOut}
+            disabled={isLoading}
+          >
+            {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Signing out...
               </>
             ) : (
-              "Sign Out"
+              "Sign out"
             )}
           </Button>
         </div>
-      ) : (
-        <div className="space-x-4">
-          <Button asChild>
-            <Link href="/signin">Sign In</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/signup">Sign Up</Link>
-          </Button>
-        </div>
-      )}
-    </div>
-  );
+      </div>
+    </main>
+  )
 }

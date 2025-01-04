@@ -38,37 +38,36 @@ export default function ResetPassword() {
     setIsLoading(true);
 
     try {
-      // Validate passwords
-      const validatedData = ResetPasswordSchema.parse({
-        password,
-        confirmPassword,
-      });
-
-      // Reset password
-      const response = await fetch("/api/auth/reset-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token,
-          password: validatedData.password,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to reset password");
+      if (password !== confirmPassword) {
+        throw new Error("Passwords do not match");
       }
 
-      toast.success(result.message || "Password reset successfully!");
+      const response = await fetch(`/api/auth/reset-password?token=${token}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password, confirmPassword }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Handle validation errors
+        if (data.issues) {
+          const messages = data.issues.map((issue: any) => issue.message);
+          throw new Error(messages.join("\n"));
+        }
+        throw new Error(data.error || "Failed to reset password");
+      }
+
+      toast.success("Password reset successfully! Please sign in.");
       router.push("/signin");
     } catch (error) {
-      if (error instanceof ZodError) {
-        toast.error(error.errors[0].message);
-      } else if (error instanceof Error) {
-        toast.error(error.message);
+      const message = error instanceof Error ? error.message : "Failed to reset password";
+      // Split multiple line error messages into separate toasts
+      if (message.includes("\n")) {
+        message.split("\n").forEach((msg) => toast.error(msg));
       } else {
-        toast.error("Failed to reset password. Please try again.");
+        toast.error(message);
       }
     } finally {
       setIsLoading(false);

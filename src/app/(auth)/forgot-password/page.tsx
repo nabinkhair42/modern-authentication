@@ -28,30 +28,33 @@ export default function ForgotPassword() {
     setIsLoading(true);
 
     try {
-      // Validate email
-      const validatedData = ForgotPasswordSchema.parse({ email });
-
-      // Request password reset
-      const response = await fetch("/api/auth/reset-password", {
-        method: "PUT",
+      const response = await fetch("/api/auth/forgot-password", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: validatedData.email }),
+        body: JSON.stringify({ email }),
       });
 
-      const result = await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error);
+        // Handle validation errors
+        if (data.issues) {
+          const messages = data.issues.map((issue: any) => issue.message);
+          throw new Error(messages.join("\n"));
+        }
+        throw new Error(data.error || "Failed to send reset email");
       }
 
-      toast.success(result.message);
+      toast.success("Reset link sent! Please check your email.");
       router.push("/signin");
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Failed to process your request. Please try again."
-      );
+      const message = error instanceof Error ? error.message : "Failed to send reset email";
+      // Split multiple line error messages into separate toasts
+      if (message.includes("\n")) {
+        message.split("\n").forEach((msg) => toast.error(msg));
+      } else {
+        toast.error(message);
+      }
     } finally {
       setIsLoading(false);
     }

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { connectToDatabase } from "@/lib/db"
-import { ForgotPasswordSchema } from "@/lib/schemas"
 import { createToken } from "@/lib/jwt"
-import { sendPasswordResetEmail } from "@/lib/mail"
+import { sendMagicLinkEmail } from "@/lib/mail"
+import { ForgotPasswordSchema } from "@/lib/schemas"
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,21 +24,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create reset token
+    // Create magic link token
     const token = await createToken(
       { email, userId: user._id.toString() },
-      "reset",
-      "1h"
+      "magic",
+      "15m"
     )
 
-    // Send reset email
-    await sendPasswordResetEmail(email, token)
+    // Send magic link email
+    await sendMagicLinkEmail(email, token)
 
     return NextResponse.json({
-      message: "Password reset email sent successfully",
+      message: "Magic link sent successfully",
     })
   } catch (error) {
-    console.error("[FORGOT_PASSWORD]", error)
+    console.error("[MAGIC_LINK]", error)
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
