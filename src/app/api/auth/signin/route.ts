@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { compare } from "bcrypt"
 import { connectToDatabase } from "@/lib/db"
 import { SignInSchema } from "@/lib/schemas"
-import { createToken } from "@/lib/jwt"
-import { cookies } from "next/headers"
+import { createToken, setUserCookie } from "@/lib/jwt"
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,27 +41,40 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create session token
+    // Create session token with user data
     const token = await createToken(
-      { userId: user._id.toString() },
+      {
+        user: {
+          id: user._id.toString(),
+          email: user.email,
+          name: user.name
+        }
+      },
       "session",
       "7d"
     )
 
     // Set cookie
-    cookies().set({
-      name: process.env.COOKIE_NAME!,
-      value: token,
-      httpOnly: true,
-      secure: process.env.SECURE_COOKIES === "true",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 7 * 24 * 60 * 60, // 7 days
-    })
+    setUserCookie(token)
 
-    return NextResponse.json({ message: "Signed in successfully" })
+    return NextResponse.json({
+      message: "Signed in successfully",
+      user: {
+        id: user._id.toString(),
+        email: user.email,
+        name: user.name
+      }
+    })
   } catch (error) {
     console.error("[SIGNIN]", error)
+    
+    if (error.name === "ZodError") {
+      return NextResponse.json(
+        { error: "Validation failed", issues: error.issues },
+        { status: 400 }
+      )
+    }
+
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

@@ -33,8 +33,7 @@ export async function verifyToken(token: string, type: TokenType): Promise<any> 
 
 // Session management
 export async function getSession() {
-  const cookieName = process.env.COOKIE_NAME!
-  const token = cookies().get(cookieName)?.value
+  const token = cookies().get('user-token')?.value
   if (!token) return null
 
   try {
@@ -63,9 +62,11 @@ export function getJwtSecretKey() {
 }
 
 export function setUserCookie(token: string) {
-  cookies().set(process.env.COOKIE_NAME!, token, {
+  cookies().set({
+    name: 'user-token',
+    value: token,
     httpOnly: true,
-    secure: process.env.SECURE_COOKIES === 'true',
+    secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
     maxAge: 7 * 24 * 60 * 60, // 7 days
@@ -73,9 +74,9 @@ export function setUserCookie(token: string) {
 }
 
 export function getUserCookie() {
-  return cookies().get(process.env.COOKIE_NAME!)?.value
+  return cookies().get('user-token')?.value
 }
 
 export function removeUserCookie() {
-  cookies().delete(process.env.COOKIE_NAME!)
+  cookies().delete('user-token')
 }
