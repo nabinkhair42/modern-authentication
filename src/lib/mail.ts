@@ -27,18 +27,19 @@ export async function sendVerificationEmail(email: string, token: string) {
 }
 
 export async function sendMagicLinkEmail(email: string, token: string) {
-  const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/magic-link/callback?token=${token}`
+  const magicLinkUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/magic-link/callback?token=${token}`
 
   await transporter.sendMail({
     from: process.env.EMAIL_FROM,
     to: email,
-    subject: 'Magic Link Sign In',
+    subject: 'Sign in to your account',
     html: `
       <div>
         <h1>Sign in to your account</h1>
         <p>Click the link below to sign in to your account:</p>
-        <a href="${loginUrl}">Login</a>
+        <a href="${magicLinkUrl}">Sign in</a>
         <p>This link will expire in 15 minutes.</p>
+        <p>If you did not request this email, you can safely ignore it.</p>
       </div>
     `,
   })

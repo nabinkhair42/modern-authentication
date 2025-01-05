@@ -26,7 +26,10 @@ export async function POST(request: NextRequest) {
 
     // Create reset token
     const token = await createToken(
-      { email, userId: user._id.toString() },
+      {
+        email, userId: user._id.toString(),
+        type: "session"
+      },
       "reset",
       "1h"
     )

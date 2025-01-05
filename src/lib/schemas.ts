@@ -36,7 +36,6 @@ export const ResetPasswordSchema = z.object({
   path: ["confirmPassword"],
 })
 
-
 export const ChangePasswordSchema = z
   .object({
     currentPassword: z.string().min(1, "Current password is required"),
@@ -56,3 +55,4 @@ export const ChangePasswordSchema = z
     message: "Passwords don't match",
     path: ["confirmPassword"],
   });
+

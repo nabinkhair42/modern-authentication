@@ -1,31 +1,28 @@
-import { NextRequest, NextResponse } from "next/server"
-import { connectToDatabase } from "@/lib/db"
-import { verifyToken, encrypt } from "@/lib/jwt"
-import { cookies } from "next/headers"
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/db";
+import { verifyToken, encrypt } from "@/lib/jwt";
+import { cookies } from "next/headers";
 
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams
-    const token = searchParams.get("token")
+    const searchParams = request.nextUrl.searchParams;
+    const token = searchParams.get("token");
 
     if (!token) {
-      return NextResponse.json(
-        { error: "Token is required" },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: "Token is required" }, { status: 400 });
     }
 
     // Verify token
-    const payload = await verifyToken(token, "verification")
+    const payload = await verifyToken(token, "verify");
     if (!payload?.email) {
       return NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_APP_URL}/signin?error=Invalid or expired token`
-      )
+      );
     }
 
     // Connect to database
-    const client = await connectToDatabase()
-    const db = client.db()
+    const client = await connectToDatabase();
+    const db = client.db();
 
     // Update user
     const result = await db
@@ -33,30 +30,30 @@ export async function GET(request: NextRequest) {
       .updateOne(
         { email: payload.email },
         { $set: { verified: true, updatedAt: new Date() } }
-      )
+      );
 
     if (!result.matchedCount) {
       return NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_APP_URL}/signin?error=User not found`
-      )
+      );
     }
 
     // Get the user
-    const user = await db.collection("users").findOne({ email: payload.email })
+    const user = await db.collection("users").findOne({ email: payload.email });
     if (!user) {
       return NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_APP_URL}/signin?error=User not found`
-      )
+      );
     }
 
     // Create session token
     const session = {
       userId: user._id.toString(),
       email: user.email,
-      type: "session"
-    }
+      type: "session",
+    };
 
-    const sessionToken = await encrypt(session)
+    const sessionToken = await encrypt(session);
 
     // Set the session cookie
     cookies().set(process.env.COOKIE_NAME!, sessionToken, {
@@ -64,15 +61,15 @@ export async function GET(request: NextRequest) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: 7 * 24 * 60 * 60 // 7 days
-    })
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+    });
 
     // Redirect to home page
-    return NextResponse.redirect(process.env.NEXT_PUBLIC_APP_URL!)
+    return NextResponse.redirect(process.env.NEXT_PUBLIC_APP_URL!);
   } catch (error) {
-    console.error("[VERIFY]", error)
+    console.error("[VERIFY]", error);
     return NextResponse.redirect(
       `${process.env.NEXT_PUBLIC_APP_URL}/signin?error=Invalid or expired token`
-    )
+    );
   }
 }

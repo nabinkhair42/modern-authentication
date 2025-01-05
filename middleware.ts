@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
-const token= process.env.COOKIE_NAME!
+const token = process.env.COOKIE_NAME!
 export async function middleware(req: NextRequest) {
   const isAuth = req.cookies.has(token);
+  console.log('Cookie name:', token);
+  console.log('Is authenticated:', isAuth);
+  console.log('Cookies present:', req.cookies.getAll());
+  
   const isAuthPage =
     req.nextUrl.pathname.startsWith("/signin") ||
     req.nextUrl.pathname.startsWith("/signup") ||

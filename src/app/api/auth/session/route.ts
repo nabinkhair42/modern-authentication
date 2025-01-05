@@ -1,26 +1,28 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { getServerSession } from "@/lib/session";
+import { SessionResponse } from "@/types/session";
 
-export async function GET() {
+export async function GET(): Promise<NextResponse<SessionResponse | null>> {
   try {
-    const session = await getSession();
-    console.log("Server session:", session);
+    const session = await getServerSession();
     
     if (!session) {
       return NextResponse.json(null);
     }
 
-    return NextResponse.json({
+    const sessionResponse: SessionResponse = {
       user: {
-        id: session.userId,
-        email: session.email
+        id: session.user.id,
+        email: session.user.email,
+        name: session.user.name,
       },
-      type: session.type,
-      iat: session.iat,
-      exp: session.exp
-    });
+      expires: session.expires.toISOString(),
+      isLoggedIn: true,
+    };
+
+    return NextResponse.json(sessionResponse);
   } catch (error) {
-    console.error("Session error:", error);
+    console.error("[SESSION_API]", error);
     return NextResponse.json(null);
   }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { connectToDatabase } from "@/lib/db"
 import { createToken } from "@/lib/jwt"
 import { ObjectId } from "mongodb"
+import { TokenPayload } from "@/types/session"
 
 async function getGithubUser(access_token: string) {
   const response = await fetch("https://api.github.com/user", {
@@ -52,7 +53,6 @@ export async function GET(request: NextRequest) {
           client_id: process.env.GITHUB_CLIENT_ID,
           client_secret: process.env.GITHUB_CLIENT_SECRET,
           code,
-          redirect_uri: process.env.GITHUB_CALLBACK_URL,
         }),
       }
     )
@@ -109,9 +109,18 @@ export async function GET(request: NextRequest) {
       userId = result.insertedId
     }
 
-    // Create session token
+    // Create session token with proper user information
+    const sessionPayload: TokenPayload = {
+      user: {
+        id: userId.toString(),
+        email: githubUser.email,
+        name: githubUser.name
+      },
+      type: "session"
+    }
+
     const token = await createToken(
-      { userId: userId.toString() },
+      sessionPayload,
       "session",
       "7d"
     )
@@ -122,7 +131,7 @@ export async function GET(request: NextRequest) {
     // Set cookie
     response.cookies.set(process.env.COOKIE_NAME!, token, {
       httpOnly: true,
-      secure: process.env.SECURE_COOKIES === "true",
+      secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
       maxAge: 7 * 24 * 60 * 60, // 7 days

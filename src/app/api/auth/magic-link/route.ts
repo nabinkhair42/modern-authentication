@@ -2,14 +2,25 @@ import { NextRequest, NextResponse } from "next/server"
 import { connectToDatabase } from "@/lib/db"
 import { createToken } from "@/lib/jwt"
 import { sendMagicLinkEmail } from "@/lib/mail"
-import { ForgotPasswordSchema } from "@/lib/schemas"
+import { z } from "zod"
+
+const EmailSchema = z.object({
+  email: z.string().email("Please enter a valid email address")
+})
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const validatedData = ForgotPasswordSchema.parse(body)
+    const validatedData = EmailSchema.safeParse(body)
 
-    const { email } = validatedData
+    if (!validatedData.success) {
+      return NextResponse.json(
+        { error: validatedData.error.errors[0].message },
+        { status: 400 }
+      )
+    }
+
+    const { email } = validatedData.data
 
     // Connect to database
     const client = await connectToDatabase()
@@ -26,7 +37,11 @@ export async function POST(request: NextRequest) {
 
     // Create magic link token
     const token = await createToken(
-      { email, userId: user._id.toString() },
+      {
+        userId: user._id.toString(),
+        email: user.email,
+        type: "magic"
+      },
       "magic",
       "15m"
     )
@@ -34,13 +49,13 @@ export async function POST(request: NextRequest) {
     // Send magic link email
     await sendMagicLinkEmail(email, token)
 
-    return NextResponse.json({
-      message: "Magic link sent successfully",
+    return NextResponse.json({ 
+      message: "Magic link sent successfully"
     })
   } catch (error) {
     console.error("[MAGIC_LINK]", error)
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Failed to send magic link" },
       { status: 500 }
     )
   }

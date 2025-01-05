@@ -63,7 +63,8 @@ export async function POST(request: NextRequest) {
           id: user._id.toString(),
           email: user.email,
           name: user.name
-        }
+        },
+        type: "session"
       },
       "session",
       "7d"

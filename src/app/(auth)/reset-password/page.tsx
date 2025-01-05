@@ -16,6 +16,7 @@ import {
   CardContent,
   CardFooter,
 } from "@/components/ui/card"
+import { ResetPasswordSchema } from "@/lib/schemas"
 
 export default function ResetPassword() {
   const [password, setPassword] = useState("")
@@ -36,36 +37,31 @@ export default function ResetPassword() {
     setIsLoading(true)
 
     try {
-      if (password !== confirmPassword) {
-        throw new Error("Passwords do not match")
-      }
+      // Validate form data
+      const validatedData = ResetPasswordSchema.parse({
+        password,
+        confirmPassword,
+      })
 
       const response = await fetch(`/api/auth/reset-password?token=${token}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password, confirmPassword }),
+        body: JSON.stringify(validatedData),
       })
 
       const data = await response.json()
 
       if (!response.ok) {
-        // Handle validation errors
-        if (data.issues) {
-          const messages = data.issues.map((issue: any) => issue.message)
-          throw new Error(messages.join("\n"))
-        }
-        throw new Error(data.error || "Failed to reset password")
+        throw new Error(data.error || "Something went wrong")
       }
 
-      toast.success("Password reset successfully! Please sign in.")
+      toast.success("Password reset successful")
       router.push("/signin")
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to reset password"
-      // Split multiple line error messages into separate toasts
-      if (message.includes("\n")) {
-        message.split("\n").forEach((msg) => toast.error(msg))
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        toast.error(error.errors[0].message)
       } else {
-        toast.error(message)
+        toast.error(error.message || "Failed to reset password")
       }
     } finally {
       setIsLoading(false)
@@ -73,12 +69,12 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="container mx-auto flex min-h-screen flex-col items-center justify-center gap-12 px-4 py-8">
-      <Card className="w-full max-w-md">
+    <div className="flex h-screen items-center justify-center">
+      <Card className="w-[400px]">
         <CardHeader>
           <CardTitle>Reset Password</CardTitle>
           <CardDescription>
-            Choose a new password for your account.
+            Enter your new password below.
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
@@ -90,18 +86,18 @@ export default function ResetPassword() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required
+                placeholder="Enter your new password"
                 disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
               <Input
                 id="confirmPassword"
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                required
+                placeholder="Confirm your new password"
                 disabled={isLoading}
               />
             </div>
@@ -112,9 +108,7 @@ export default function ResetPassword() {
               className="w-full"
               disabled={isLoading}
             >
-              {isLoading && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Reset Password
             </Button>
             <Link

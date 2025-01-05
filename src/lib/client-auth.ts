@@ -1,15 +1,31 @@
-import { Session, SessionResponse } from "@/types/api.types"
+import { SessionResponse } from "@/types/session";
 
 export async function getClientSession(): Promise<SessionResponse | null> {
   try {
-    const response = await fetch("/api/auth/session")
+    const response = await fetch("/api/auth/session", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
     if (!response.ok) {
-      return null
+      return null;
     }
-    const data = await response.json()
-    return data
+
+    const session = await response.json();
+
+    return {
+      user: {
+        id: session.user.id,
+        email: session.user.email,
+        name: session.user.name,
+      },
+      expires: session.expires,
+      isLoggedIn: true,
+    };
   } catch (error) {
-    console.error("Failed to get client session:", error)
-    return null
+    console.error("[GET_CLIENT_SESSION]", error);
+    return null;
   }
 }

@@ -1,33 +1,37 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { TokenPayload } from "@/types/session";
 
 const secretKey = process.env.JWT_SECRET_KEY!;
 const key = new TextEncoder().encode(secretKey);
 
-type TokenType = "session" | "verification" | "reset" | "magic";
-
 export async function createToken(
-  payload: any,
-  type: TokenType,
+  payload: Omit<TokenPayload, "iat" | "exp">,
+  type: TokenPayload["type"],
   expiresIn: string
-) {
-  return await new SignJWT({ ...payload, type })
+): Promise<string> {
+  const token = await new SignJWT({ ...payload, type })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(expiresIn)
     .sign(key);
+
+  return token;
 }
 
 export async function verifyToken(
   token: string,
-  type: TokenType
-): Promise<any> {
+  type: TokenPayload["type"]
+): Promise<TokenPayload | null> {
   try {
     const { payload } = await jwtVerify(token, key);
+
     if (payload.type !== type) {
-      throw new Error("Invalid token type");
+      console.error("Invalid token type:", { expected: type, got: payload.type });
+      return null;
     }
-    return payload;
+
+    return payload as unknown as TokenPayload;
   } catch (error) {
     console.error("Token verification failed:", error);
     return null;
@@ -56,7 +60,6 @@ export async function decrypt(token: string): Promise<any> {
   return verifyToken(token, "session");
 }
 
-// Cookie management
 export function getJwtSecretKey() {
   const secret = process.env.JWT_SECRET_KEY;
   if (!secret) {
@@ -65,10 +68,8 @@ export function getJwtSecretKey() {
   return secret;
 }
 
-export function setUserCookie(token: string) {
-  cookies().set({
-    name: process.env.COOKIE_NAME!,
-    value: token,
+export function setUserCookie(token: string): void {
+  cookies().set(process.env.COOKIE_NAME!, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -77,10 +78,10 @@ export function setUserCookie(token: string) {
   });
 }
 
-export function getUserCookie() {
+export function getUserCookie(): string | undefined {
   return cookies().get(process.env.COOKIE_NAME!)?.value;
 }
 
-export function removeUserCookie() {
+export function removeUserCookie(): void {
   cookies().delete(process.env.COOKIE_NAME!);
 }

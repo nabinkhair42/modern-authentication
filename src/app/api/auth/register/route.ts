@@ -40,8 +40,11 @@ export async function POST(request: NextRequest) {
     // Create verification token
     console.log("[REGISTER] Creating verification token")
     const verificationToken = await createToken(
-      { email },
-      "verification",
+      {
+        email,
+        type: "session"
+      },
+      "verify",
       "1h"
     )
 
