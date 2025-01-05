@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { decrypt } from "@/lib/jwt";
+import { decrypt } from "@/lib/auth/jwt";
 import { redirect } from "next/navigation";
 
 export async function getSession() {

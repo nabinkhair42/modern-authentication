@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectToDatabase } from "@/lib/db";
-import { createToken, verifyToken } from "@/lib/jwt";
+import { connectToDatabase } from "@/db/db";
+import { createToken, verifyToken } from "@/lib/auth/jwt";
 import { ObjectId } from "mongodb";
-import { handleAuthError } from "@/lib/session";
+import { handleAuthError } from "@/lib/auth/session";
 
 export async function GET(request: NextRequest) {
   try {

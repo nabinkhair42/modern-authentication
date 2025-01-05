@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { getClientSession } from "@/lib/client-auth";
+import { getClientSession } from "@/lib/auth/client-auth";
 
 export default function Home() {
   const router = useRouter();

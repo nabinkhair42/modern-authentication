@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { hash } from "bcrypt"
-import { connectToDatabase } from "@/lib/db"
-import { SignUpSchema } from "@/lib/schemas"
-import { sendVerificationEmail } from "@/lib/mail"
-import { createToken } from "@/lib/jwt"
+import { connectToDatabase } from "@/db/db"
+import { SignUpSchema } from "@/schemas/schemas"
+import { sendVerificationEmail } from "@/helpers/mail"
+import { createToken } from "@/lib/auth/jwt"
 
 export async function POST(request: NextRequest) {
   try {

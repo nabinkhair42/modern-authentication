@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { LogIn, Github, Loader2, Mail } from "lucide-react"
 import Link from "next/link"
-import { SignInSchema } from "@/lib/schemas"
+import { SignInSchema } from "@/schemas/schemas"
 import {
   Card,
   CardHeader,

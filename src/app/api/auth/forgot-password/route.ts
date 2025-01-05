@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
-import { connectToDatabase } from "@/lib/db"
-import { ForgotPasswordSchema } from "@/lib/schemas"
-import { createToken } from "@/lib/jwt"
-import { sendPasswordResetEmail } from "@/lib/mail"
+import { connectToDatabase } from "@/db/db"
+import { ForgotPasswordSchema } from "@/schemas/schemas"
+import { createToken } from "@/lib/auth/jwt"
+import { sendPasswordResetEmail } from "@/helpers/mail"
 
 export async function POST(request: NextRequest) {
   try {

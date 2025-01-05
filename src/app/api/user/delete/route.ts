@@ -1,22 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import { hash, compare } from "bcrypt";
+import { compare } from "bcrypt";
 import { connectToDatabase } from "@/db/db";
-import { getSession } from "@/lib/auth/auth";
+import { DeleteUserSchema } from "@/schemas/schemas";
+import { getServerSession } from "@/lib/auth/session";
 import { ObjectId } from "mongodb";
-import { ChangePasswordSchema } from "@/schemas/schemas";
+import { cookies } from "next/headers";
 
 export async function POST(request: NextRequest) {
   try {
-    // Get current user from session
-    const session = await getSession();
+    // Get current session
+    const session = await getServerSession();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
     }
 
     // Validate request body
     const body = await request.json();
-    const validatedData = ChangePasswordSchema.parse(body);
-    const { currentPassword, newPassword } = validatedData;
+    const validatedData = DeleteUserSchema.parse(body);
+    const { password } = validatedData;
 
     // Connect to database
     const client = await connectToDatabase();
@@ -28,37 +32,36 @@ export async function POST(request: NextRequest) {
       .findOne({ _id: new ObjectId(session.user.id) });
 
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    // Verify current password
-    const isValid = await compare(currentPassword, user.password);
-    if (!isValid) {
       return NextResponse.json(
-        { error: "Current password is incorrect" },
-        { status: 400 }
+        { error: "User not found" },
+        { status: 404 }
       );
     }
 
-    // Hash new password
-    const hashedPassword = await hash(newPassword, 12);
-
-    // Update password
-    await db.collection("users").updateOne(
-      { _id: new ObjectId(session.user.id) },
-      {
-        $set: {
-          password: hashedPassword,
-          updatedAt: new Date(),
-        },
+    // For users with password authentication, verify password
+    if (user.password) {
+      const isValid = await compare(password, user.password);
+      if (!isValid) {
+        return NextResponse.json(
+          { error: "Invalid password" },
+          { status: 400 }
+        );
       }
-    );
+    }
+
+    // Delete user
+    await db
+      .collection("users")
+      .deleteOne({ _id: new ObjectId(session.user.id) });
+
+    // Clear session cookie
+    cookies().delete(process.env.COOKIE_NAME!);
 
     return NextResponse.json({
-      message: "Password changed successfully",
+      message: "Account deleted successfully",
     });
   } catch (error: unknown) {
-    console.error("[CHANGE_PASSWORD]", error);
+    console.error("[DELETE_USER]", error);
 
     // Handle Zod validation errors
     if (

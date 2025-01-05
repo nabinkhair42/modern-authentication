@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "@/lib/session";
+import { getServerSession } from "@/lib/auth/session";
 import { SessionResponse } from "@/types/session";
 
 export async function GET(): Promise<NextResponse<SessionResponse | null>> {

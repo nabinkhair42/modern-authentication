@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { compare } from "bcrypt"
-import { connectToDatabase } from "@/lib/db"
-import { SignInSchema } from "@/lib/schemas"
-import { createToken, setUserCookie } from "@/lib/jwt"
+import { connectToDatabase } from "@/db/db"
+import { SignInSchema } from "@/schemas/schemas"
+import { createToken, setUserCookie } from "@/lib/auth/jwt"
 import { z } from "zod"
 
 export async function POST(request: NextRequest) {

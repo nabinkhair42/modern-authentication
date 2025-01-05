@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { connectToDatabase } from "@/lib/db"
-import { getSession } from "@/lib/auth"
+import { connectToDatabase } from "@/db/db"
+import { getSession } from "@/lib/auth/auth"
 import { ObjectId } from "mongodb"
 import { z } from "zod"
 

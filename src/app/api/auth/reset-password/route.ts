@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { hash } from "bcrypt"
-import { connectToDatabase } from "@/lib/db"
-import { ResetPasswordSchema } from "@/lib/schemas"
-import { verifyToken } from "@/lib/jwt"
+import { connectToDatabase } from "@/db/db"
+import { ResetPasswordSchema } from "@/schemas/schemas"
+import { verifyToken } from "@/lib/auth/jwt"
 
 export async function POST(request: NextRequest) {
   try {

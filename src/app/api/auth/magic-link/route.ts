@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
-import { connectToDatabase } from "@/lib/db"
-import { createToken } from "@/lib/jwt"
-import { sendMagicLinkEmail } from "@/lib/mail"
+import { connectToDatabase } from "@/db/db"
+import { createToken } from "@/lib/auth/jwt"
+import { sendMagicLinkEmail } from "@/helpers/mail"
 import { z } from "zod"
 
 const EmailSchema = z.object({

@@ -16,7 +16,7 @@ import {
   CardContent,
   CardFooter,
 } from "@/components/ui/card"
-import { ResetPasswordSchema } from "@/lib/schemas"
+import { ResetPasswordSchema } from "@/schemas/schemas"
 
 export default function ResetPassword() {
   const [password, setPassword] = useState("")

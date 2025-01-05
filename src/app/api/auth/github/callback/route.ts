@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { connectToDatabase } from "@/lib/db"
-import { createToken } from "@/lib/jwt"
+import { connectToDatabase } from "@/db/db"
+import { createToken } from "@/lib/auth/jwt"
 import { ObjectId } from "mongodb"
 import { TokenPayload } from "@/types/session"
 
