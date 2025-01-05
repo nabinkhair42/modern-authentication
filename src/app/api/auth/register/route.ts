@@ -1,110 +1,76 @@
-import { NextRequest, NextResponse } from "next/server"
-import { hash } from "bcrypt"
-import { connectToDatabase } from "@/db/db"
-import { SignUpSchema } from "@/schemas/schemas"
-import { sendVerificationEmail } from "@/helpers/mail"
-import { createToken } from "@/lib/auth/jwt"
+import { NextRequest, NextResponse } from "next/server";
+import { hash } from "bcrypt";
+import { connectToDatabase } from "@/db/db";
+import { SignUpSchema } from "@/schemas/schemas";
+import { sendVerificationEmail } from "@/helpers/mail";
+import { createToken } from "@/lib/auth/jwt";
+import { UserModel } from "@/models/user.model";
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("[REGISTER] Starting registration process")
-    
-    const body = await request.json()
-    console.log("[REGISTER] Request body:", { email: body.email, hasPassword: !!body.password, hasConfirmPassword: !!body.confirmPassword })
-    
-    const validatedData = SignUpSchema.parse(body)
-    console.log("[REGISTER] Data validated successfully")
-
-    const { email, password } = validatedData
+    // Validate request body
+    const body = await request.json();
+    const validatedData = SignUpSchema.parse(body);
+    const { email, password } = validatedData;
 
     // Connect to database
-    console.log("[REGISTER] Connecting to database")
-    const client = await connectToDatabase()
-    const db = client.db()
+    const client = await connectToDatabase();
+    const db = client.db();
 
     // Check if user exists
-    console.log("[REGISTER] Checking for existing user")
-    const existingUser = await db.collection("users").findOne({ email })
+    const existingUser = await UserModel.findByEmail(db, email);
     if (existingUser) {
-      console.log("[REGISTER] User already exists")
       return NextResponse.json(
-        { error: "Email already exists" },
+        { error: "Email already registered" },
         { status: 400 }
-      )
+      );
     }
 
     // Hash password
-    console.log("[REGISTER] Hashing password")
-    const hashedPassword = await hash(password, 12)
+    const hashedPassword = await hash(password, 12);
+
+    // Create user
+    const user = await UserModel.create(db, {
+      email,
+      name: email.split("@")[0], // Default name from email
+      password: hashedPassword,
+      provider: "credentials",
+      verified: false,
+    });
 
     // Create verification token
-    console.log("[REGISTER] Creating verification token")
     const verificationToken = await createToken(
       {
         email,
-        type: "session"
+        type: "verify"
       },
       "verify",
       "1h"
-    )
-
-    // Create user
-    console.log("[REGISTER] Creating new user")
-    const result = await db.collection("users").insertOne({
-      email,
-      password: hashedPassword,
-      verified: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    })
+    );
 
     // Send verification email
-    console.log("[REGISTER] Sending verification email")
-    await sendVerificationEmail(email, verificationToken)
+    await sendVerificationEmail(email, verificationToken);
 
-    console.log("[REGISTER] Registration successful")
-    return NextResponse.json(
-      { message: "User created successfully" },
-      { status: 201 }
-    )
+    return NextResponse.json({
+      message: "Registration successful. Please check your email to verify your account.",
+    });
   } catch (error: unknown) {
-    console.error("[REGISTER]", error)
-    
+    console.error("[REGISTER]", error);
+
     // Handle Zod validation errors
-    if (error && typeof error === 'object' && 'name' in error) {
-      if (error.name === "ZodError" && 'issues' in error) {
-        return NextResponse.json(
-          { error: "Validation failed", issues: error.issues },
-          { status: 400 }
-        )
-      }
-
-      // Handle database errors
-      if (error.name === "MongoError" || error.name === "MongoServerError") {
-        return NextResponse.json(
-          { error: "Database error occurred" },
-          { status: 500 }
-        )
-      }
-    }
-
-    // Handle email sending errors
-    if (
-      error && 
-      typeof error === 'object' && 
-      'message' in error && 
-      typeof (error as { message: string }).message === 'string' && 
-      (error as { message: string }).message.includes("email")
-    ) {
+    if (error && typeof error === "object" && "name" in error && error.name === "ZodError") {
       return NextResponse.json(
-        { error: "Failed to send verification email" },
-        { status: 500 }
-      )
+        {
+          error: "Validation failed",
+          issues: (error as unknown as { issues: any[] }).issues,
+        },
+        { status: 400 }
+      );
     }
 
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
-    )
+    );
   }
 }

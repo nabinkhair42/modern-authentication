@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/db/db";
-import { verifyToken, encrypt } from "@/lib/auth/jwt";
+import { verifyToken, createToken } from "@/lib/auth/jwt";
+import { TokenPayload } from "@/types/session";
 import { cookies } from "next/headers";
 
 export async function GET(request: NextRequest) {
@@ -46,14 +47,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Create session token
-    const session = {
-      userId: user._id.toString(),
-      email: user.email,
+    // Create session token with proper user information
+    const sessionPayload: TokenPayload = {
+      user: {
+        id: user._id.toString(),
+        email: user.email,
+        name: user.name,
+      },
       type: "session",
     };
 
-    const sessionToken = await encrypt(session);
+    const sessionToken = await createToken(sessionPayload, "session", "7d");
 
     // Set the session cookie
     cookies().set(process.env.COOKIE_NAME!, sessionToken, {
