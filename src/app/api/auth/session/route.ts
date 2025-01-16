@@ -5,9 +5,18 @@ import { SessionResponse } from "@/types/session";
 export async function GET(): Promise<NextResponse<SessionResponse | null>> {
   try {
     const session = await getServerSession();
+
+    console.log("[SESSION_API]", session);
     
     if (!session) {
-      return NextResponse.json(null);
+      return new NextResponse(JSON.stringify(null), {
+        headers: {
+          'Access-Control-Allow-Credentials': 'true',
+          'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_APP_URL || '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+      });
     }
 
     const sessionResponse: SessionResponse = {
@@ -20,9 +29,23 @@ export async function GET(): Promise<NextResponse<SessionResponse | null>> {
       isLoggedIn: true,
     };
 
-    return NextResponse.json(sessionResponse);
+    return new NextResponse(JSON.stringify(sessionResponse), {
+      headers: {
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_APP_URL || '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
+    });
   } catch (error) {
     console.error("[SESSION_API]", error);
-    return NextResponse.json(null);
+    return new NextResponse(JSON.stringify(null), {
+      headers: {
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_APP_URL || '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
+    });
   }
 }
