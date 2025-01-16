@@ -1,16 +1,34 @@
 import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
-const token = process.env.COOKIE_NAME!
+
+const token = process.env.COOKIE_NAME!;
+
 export async function middleware(req: NextRequest) {
-  const isAuth = req.cookies.has(token);
-  console.log('Cookie name:', token);
-  console.log('Is authenticated:', isAuth);
-  console.log('Cookies present:', req.cookies.getAll());
+  // Debug cookie information
+  const cookieToken = req.cookies.get(token);
+  console.log('[MIDDLEWARE] Cookie token:', cookieToken?.value);
+  console.log('[MIDDLEWARE] All cookies:', req.cookies.getAll());
+  console.log('[MIDDLEWARE] URL:', req.url);
   
+  const isAuth = cookieToken?.value ? true : false;
+
   const isAuthPage =
     req.nextUrl.pathname.startsWith("/signin") ||
     req.nextUrl.pathname.startsWith("/signup") ||
     req.nextUrl.pathname.startsWith("/verify");
+
+  // Allow OPTIONS requests for CORS
+  if (req.method === "OPTIONS") {
+    return new NextResponse(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Allow-Origin": process.env.NEXT_PUBLIC_APP_URL || "*",
+        "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      },
+    });
+  }
 
   if (isAuthPage) {
     if (isAuth) {
