@@ -5,7 +5,9 @@ import { Session,  AuthError } from "@/types/session";
 export async function getServerSession(): Promise<Session | null> {
   try {
     const token = cookies().get(process.env.COOKIE_NAME!)?.value;
-    console.log("Token from Client is ", token);
+    if (process.env.NODE_ENV === "development") {
+      console.log("Token from Client is ", token);
+    }
     if (!token) return null;
 
     const payload = await verifyToken(token, "session");

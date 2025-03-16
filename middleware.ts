@@ -4,11 +4,15 @@ import { NextRequest } from "next/server";
 const token = process.env.COOKIE_NAME!;
 
 export async function middleware(req: NextRequest) {
-  // Debug cookie information
+  // Get token from cookies
   const cookieToken = req.cookies.get(token);
-  console.log('[MIDDLEWARE] Cookie token:', cookieToken?.value);
-  console.log('[MIDDLEWARE] All cookies:', req.cookies.getAll());
-  console.log('[MIDDLEWARE] URL:', req.url);
+  
+  // Only log in development mode
+  if (process.env.NODE_ENV === "development") {
+    console.log('[MIDDLEWARE] Cookie token:', cookieToken?.value);
+    console.log('[MIDDLEWARE] All cookies:', req.cookies.getAll());
+    console.log('[MIDDLEWARE] URL:', req.url);
+  }
   
   const isAuth = cookieToken?.value ? true : false;
 
@@ -23,7 +27,7 @@ export async function middleware(req: NextRequest) {
       status: 204,
       headers: {
         "Access-Control-Allow-Credentials": "true",
-        "Access-Control-Allow-Origin": process.env.NEXT_PUBLIC_APP_URL || "*",
+        "Access-Control-Allow-Origin": process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
         "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
       },

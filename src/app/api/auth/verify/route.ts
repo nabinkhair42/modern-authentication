@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/db/db";
 import { verifyToken, createToken } from "@/lib/auth/jwt";
 import { TokenPayload } from "@/types/session";
 import { cookies } from "next/headers";
+import { redirectWithError } from "@/lib/auth/error-handler";
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,14 +11,26 @@ export async function GET(request: NextRequest) {
     const token = searchParams.get("token");
 
     if (!token) {
-      return NextResponse.json({ error: "Token is required" }, { status: 400 });
+      return redirectWithError(
+        `${process.env.NEXT_PUBLIC_APP_URL}/signin`, 
+        "Token is required"
+      );
     }
 
     // Verify token
     const payload = await verifyToken(token, "verify");
     if (!payload?.email) {
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/signin?error=Invalid or expired token`
+      return redirectWithError(
+        `${process.env.NEXT_PUBLIC_APP_URL}/signin`,
+        "Invalid or expired token"
+      );
+    }
+
+    // Validate email format
+    if (!payload.email.includes('@') || payload.email.length < 5) {
+      return redirectWithError(
+        `${process.env.NEXT_PUBLIC_APP_URL}/signin`,
+        "Invalid email format in token"
       );
     }
 
@@ -34,16 +47,18 @@ export async function GET(request: NextRequest) {
       );
 
     if (!result.matchedCount) {
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/signin?error=User not found`
+      return redirectWithError(
+        `${process.env.NEXT_PUBLIC_APP_URL}/signin`,
+        "User not found"
       );
     }
 
     // Get the user
     const user = await db.collection("users").findOne({ email: payload.email });
     if (!user) {
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/signin?error=User not found`
+      return redirectWithError(
+        `${process.env.NEXT_PUBLIC_APP_URL}/signin`,
+        "User not found"
       );
     }
 
@@ -72,8 +87,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(process.env.NEXT_PUBLIC_APP_URL!);
   } catch (error) {
     console.error("[VERIFY]", error);
-    return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/signin?error=Invalid or expired token`
+    return redirectWithError(
+      `${process.env.NEXT_PUBLIC_APP_URL}/signin`,
+      "Invalid or expired token"
     );
   }
 }

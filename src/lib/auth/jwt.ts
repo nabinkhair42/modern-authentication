@@ -2,7 +2,16 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { TokenPayload } from "@/types/session";
 
-const secretKey = process.env.JWT_SECRET_KEY!;
+// Ensure JWT secret is properly initialized with minimum secure length
+const getSecretKey = (): string => {
+  const secretKey = process.env.JWT_SECRET_KEY;
+  if (!secretKey || secretKey.length < 32) {
+    throw new Error("JWT_SECRET_KEY is not set or is too short (minimum 32 characters)");
+  }
+  return secretKey;
+};
+
+const secretKey = getSecretKey();
 const key = new TextEncoder().encode(secretKey);
 
 export async function createToken(

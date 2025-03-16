@@ -3,9 +3,20 @@ import { connectToDatabase } from "@/db/db"
 import { ForgotPasswordSchema } from "@/schemas/schemas"
 import { createToken } from "@/lib/auth/jwt"
 import { sendPasswordResetEmail } from "@/helpers/mail"
+import { handleApiError } from "@/lib/auth/error-handler"
+import { passwordResetRateLimiter, getClientIP } from "@/lib/auth/rate-limit"
 
 export async function POST(request: NextRequest) {
   try {
+    // Apply rate limiting
+    const clientIP = getClientIP(request);
+    if (passwordResetRateLimiter.isRateLimited(clientIP)) {
+      return NextResponse.json(
+        { error: "Too many password reset requests. Please try again later." },
+        { status: 429 }
+      );
+    }
+    
     const body = await request.json()
     const validatedData = ForgotPasswordSchema.parse(body)
 
@@ -28,7 +39,7 @@ export async function POST(request: NextRequest) {
     const token = await createToken(
       {
         email, userId: user._id.toString(),
-        type: "session"
+        type: "reset"
       },
       "reset",
       "1h"
@@ -41,10 +52,6 @@ export async function POST(request: NextRequest) {
       message: "Password reset email sent successfully",
     })
   } catch (error) {
-    console.error("[FORGOT_PASSWORD]", error)
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    )
+    return handleApiError(error, "FORGOT_PASSWORD");
   }
 }

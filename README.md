@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Modern Authentication System
 
-## Getting Started
+A comprehensive authentication and user management system built with Next.js, MongoDB, and modern security practices. This application provides a complete solution for user authentication and account management.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+### Authentication Methods
+- **Email & Password**: Traditional authentication with email verification
+- **Magic Link**: Passwordless authentication via email
+- **GitHub OAuth**: Single sign-on with GitHub accounts
+- **Session Management**: Secure JWT-based session handling with HTTP-only cookies
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### User Management
+- **User Registration**: Create accounts with email verification
+- **Email Verification**: Verify email addresses to activate accounts
+- **Password Management**: Secure password hashing and reset functionality
+- **Profile Management**: Update user profile information
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Security Features
+- **HTTP-only Cookies**: Prevent client-side JavaScript access to authentication tokens
+- **CSRF Protection**: Protection against cross-site request forgery
+- **Password Validation**: Strong password requirements with zod schema validation
+- **Secure Routes**: Protected routes with middleware authentication checks
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Architecture
 
-## Learn More
+The system is built using:
+- **Next.js 14**: Full-stack React framework with App Router
+- **MongoDB**: NoSQL database for user data storage
+- **Tailwind CSS**: Utility-first CSS framework for styling
+- **Zod**: TypeScript-first schema validation
+- **JWT (jose)**: JSON Web Tokens for secure authentication
+- **Nodemailer**: Email delivery for verification and password reset
 
-To learn more about Next.js, take a look at the following resources:
+## API Endpoints
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The system provides the following API endpoints:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `/api/auth/register`: Create a new user account
+- `/api/auth/signin`: Authenticate with email and password
+- `/api/auth/signout`: End the current session
+- `/api/auth/verify`: Verify email address
+- `/api/auth/magic-link`: Request magic link login
+- `/api/auth/forgot-password`: Request password reset
+- `/api/auth/reset-password`: Set a new password with a valid token
+- `/api/auth/change-password`: Update password for authenticated users
+- `/api/auth/github`: GitHub OAuth authentication flow

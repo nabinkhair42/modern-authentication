@@ -4,9 +4,19 @@ import { connectToDatabase } from "@/db/db"
 import { SignInSchema } from "@/schemas/schemas"
 import { createToken, setUserCookie } from "@/lib/auth/jwt"
 import { z } from "zod"
+import { loginRateLimiter, getClientIP } from "@/lib/auth/rate-limit"
 
 export async function POST(request: NextRequest) {
   try {
+    // Apply rate limiting
+    const clientIP = getClientIP(request);
+    if (loginRateLimiter.isRateLimited(clientIP)) {
+      return NextResponse.json(
+        { error: "Too many login attempts. Please try again later." },
+        { status: 429 }
+      );
+    }
+    
     const body = await request.json()
     let validatedData;
     
@@ -34,7 +44,7 @@ export async function POST(request: NextRequest) {
     const user = await db.collection("users").findOne({ email })
     if (!user) {
       return NextResponse.json(
-        { error: "Invalid credentials" },
+        { error: "No account found with this email" },
         { status: 401 }
       )
     }

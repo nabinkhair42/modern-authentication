@@ -5,9 +5,20 @@ import { SignUpSchema } from "@/schemas/schemas";
 import { sendVerificationEmail } from "@/helpers/mail";
 import { createToken } from "@/lib/auth/jwt";
 import { UserModel } from "@/models/user.model";
+import { handleApiError } from "@/lib/auth/error-handler";
+import { registerRateLimiter, getClientIP } from "@/lib/auth/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
+    // Apply rate limiting
+    const clientIP = getClientIP(request);
+    if (registerRateLimiter.isRateLimited(clientIP)) {
+      return NextResponse.json(
+        { error: "Too many registration attempts. Please try again later." },
+        { status: 429 }
+      );
+    }
+
     // Validate request body
     const body = await request.json();
     const validatedData = SignUpSchema.parse(body);
@@ -55,22 +66,6 @@ export async function POST(request: NextRequest) {
       message: "Registration successful. Please check your email to verify your account.",
     });
   } catch (error: unknown) {
-    console.error("[REGISTER]", error);
-
-    // Handle Zod validation errors
-    if (error && typeof error === "object" && "name" in error && error.name === "ZodError") {
-      return NextResponse.json(
-        {
-          error: "Validation failed",
-          issues: (error as unknown as { issues: any[] }).issues,
-        },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return handleApiError(error, "REGISTER");
   }
 }

@@ -3,6 +3,8 @@ import { connectToDatabase } from "@/db/db"
 import { createToken } from "@/lib/auth/jwt"
 import { sendMagicLinkEmail } from "@/helpers/mail"
 import { z } from "zod"
+import { handleApiError } from "@/lib/auth/error-handler"
+import { loginRateLimiter, getClientIP } from "@/lib/auth/rate-limit"
 
 const EmailSchema = z.object({
   email: z.string().email("Please enter a valid email address")
@@ -10,6 +12,15 @@ const EmailSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // Apply rate limiting
+    const clientIP = getClientIP(request);
+    if (loginRateLimiter.isRateLimited(clientIP)) {
+      return NextResponse.json(
+        { error: "Too many magic link requests. Please try again later." },
+        { status: 429 }
+      );
+    }
+    
     const body = await request.json()
     const validatedData = EmailSchema.safeParse(body)
 
@@ -53,10 +64,6 @@ export async function POST(request: NextRequest) {
       message: "Magic link sent successfully"
     })
   } catch (error) {
-    console.error("[MAGIC_LINK]", error)
-    return NextResponse.json(
-      { error: "Failed to send magic link" },
-      { status: 500 }
-    )
+    return handleApiError(error, "MAGIC_LINK");
   }
 }

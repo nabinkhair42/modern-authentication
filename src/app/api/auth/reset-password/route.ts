@@ -3,9 +3,20 @@ import { hash } from "bcrypt"
 import { connectToDatabase } from "@/db/db"
 import { ResetPasswordSchema } from "@/schemas/schemas"
 import { verifyToken } from "@/lib/auth/jwt"
+import { handleApiError } from "@/lib/auth/error-handler"
+import { passwordResetRateLimiter, getClientIP } from "@/lib/auth/rate-limit"
 
 export async function POST(request: NextRequest) {
   try {
+    // Apply rate limiting
+    const clientIP = getClientIP(request);
+    if (passwordResetRateLimiter.isRateLimited(clientIP)) {
+      return NextResponse.json(
+        { error: "Too many password reset attempts. Please try again later." },
+        { status: 429 }
+      );
+    }
+
     const searchParams = request.nextUrl.searchParams
     const token = searchParams.get("token")
 
@@ -62,16 +73,6 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     )
   } catch (error: any) {
-    console.error("[RESET_PASSWORD]", error)
-    if (error.name === "ZodError") {
-      return NextResponse.json(
-        { error: error.errors[0].message },
-        { status: 400 }
-      )
-    }
-    return NextResponse.json(
-      { error: "Something went wrong" },
-      { status: 500 }
-    )
+    return handleApiError(error, "RESET_PASSWORD");
   }
 }

@@ -4,9 +4,20 @@ import { connectToDatabase } from "@/db/db";
 import { getSession } from "@/lib/auth/auth";
 import { ObjectId } from "mongodb";
 import { ChangePasswordSchema } from "@/schemas/schemas";
+import { handleApiError } from "@/lib/auth/error-handler";
+import { passwordResetRateLimiter, getClientIP } from "@/lib/auth/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
+    // Apply rate limiting based on client IP
+    const clientIP = getClientIP(request);
+    if (passwordResetRateLimiter.isRateLimited(clientIP)) {
+      return NextResponse.json(
+        { error: "Too many password change attempts. Please try again later." },
+        { status: 429 }
+      );
+    }
+
     // Get current user from session
     const session = await getSession();
     if (!session?.user?.id) {
@@ -58,27 +69,6 @@ export async function POST(request: NextRequest) {
       message: "Password changed successfully",
     });
   } catch (error: unknown) {
-    console.error("[CHANGE_PASSWORD]", error);
-
-    // Handle Zod validation errors
-    if (
-      error &&
-      typeof error === "object" &&
-      "name" in error &&
-      error.name === "ZodError"
-    ) {
-      return NextResponse.json(
-        {
-          error: "Validation failed",
-          issues: (error as unknown as { issues: any[] }).issues,
-        },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return handleApiError(error, "CHANGE_PASSWORD");
   }
 }

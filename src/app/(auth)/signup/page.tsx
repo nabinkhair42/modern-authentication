@@ -51,7 +51,7 @@ export default function SignUp() {
         throw new Error(data.error || "Failed to create account")
       }
 
-      toast.success("Account created! Please verify your email.")
+      toast.success(data.message)
       router.push("/verify")
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to sign up"
